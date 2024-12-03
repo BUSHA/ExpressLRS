@@ -48,6 +48,23 @@ static struct luaItem_selection luaTlmRate = {
     tlmBandwidth
 };
 
+//----------------------------DOMAIN------------------
+char domainFolderDynamicName[128];
+static struct luaItem_folder luaDomainFolder = {
+    {"Domain", CRSF_FOLDER},domainFolderDynamicName
+};
+static struct luaItem_selection luaDomain = {
+    {"Domain", CRSF_TEXT_SELECTION},
+    firmwareOptions.domain, // value
+    NULL,
+    STR_EMPTYSPACE
+};
+static struct luaItem_command luaDomainApply = {
+    {"APPLY", CRSF_COMMAND},
+    lcsIdle, // step
+    STR_EMPTYSPACE
+};
+
 //----------------------------POWER------------------
 static struct luaItem_folder luaPowerFolder = {
     {"TX Power", CRSF_FOLDER},pwrFolderDynamicName
@@ -456,6 +473,52 @@ static void luahandSimpleSendCmd(struct luaPropertiesCommon *item, uint8_t arg)
   }
 }
 
+static void luahandChangeDomainCmd(struct luaPropertiesCommon *item, uint8_t arg)
+{
+  struct luaItem_command *cmd = (struct luaItem_command *)item;
+  const char *textRunning = "RESTART LUA !!!";
+  switch ((luaCmdStep_e)arg)
+  {
+    case lcsClick:
+    case lcsConfirmed:
+      // skip if no change detected
+      if (luaDomain.value == firmwareOptions.domain)
+      {
+        sendLuaCommandResponse(cmd, lcsIdle, STR_EMPTYSPACE); 
+        break;
+      }
+      
+      DBGLN("Domain change detected: %d, saving and rebooting", luaDomain.value);
+      sendLuaCommandResponse(cmd, lcsExecuting, textRunning);
+      // set power to minimal
+      config.SetDynamicPower(0);
+      config.SetPower(POWERMGNT::getMinPower());
+      if (!config.IsModified())
+      {
+            ResetPower();
+      }
+      // change domain
+      firmwareOptions.domain = luaDomain.value;
+      saveOptions();
+      //reboot
+      rebootTime = millis() + 400;
+      sendLuaCommandResponse(cmd, lcsQuery, STR_EMPTYSPACE);  
+      break;
+    case lcsQuery:
+      event();
+      SetSyncSpam();
+      sendLuaCommandResponse(cmd, lcsIdle, STR_EMPTYSPACE);
+      break;
+    case lcsCancel:
+      sendLuaCommandResponse(cmd, lcsIdle, STR_EMPTYSPACE);
+      rebootTime = millis() + 400;
+      break;
+    default: // LUACMDSTEP_NONE on load, LUACMDSTEP_EXECUTING (our lua) or LUACMDSTEP_QUERY (Crossfire Config)
+      sendLuaCommandResponse(cmd, cmd->step, cmd->info);
+      break;
+  }
+}
+
 static void updateFolderName_TxPower()
 {
   uint8_t txPwrDyn = config.GetDynamicPower() ? config.GetBoostChannel() + 1 : 0;
@@ -473,6 +536,11 @@ static void updateFolderName_TxPower()
 
   pwrFolderDynamicName[pwrFolderLabelOffset++] = ')';
   pwrFolderDynamicName[pwrFolderLabelOffset] = '\0';
+}
+
+static void updateFolderName_Domains()
+{
+  sprintf(domainFolderDynamicName, "Domain (%s)", getRegulatoryDomainsTable()[firmwareOptions.domain].domain);
 }
 
 static void updateFolderName_VtxAdmin()
@@ -543,6 +611,7 @@ static void luadevUpdateBadGood()
  ***/
 void luadevUpdateFolderNames()
 {
+  updateFolderName_Domains();
   updateFolderName_TxPower();
   updateFolderName_VtxAdmin();
 
@@ -646,6 +715,15 @@ static void registerLuaParameters()
         luadevUpdateModelID();
       });
     }
+
+    // Domain folder
+    registerLUAParameter(&luaDomainFolder);
+    luadevGenerateDomainOpts(&luaDomain);
+    registerLUAParameter(&luaDomain, [](struct luaPropertiesCommon *item, uint8_t arg) {
+      luaDomain.value = arg;
+    }, luaDomainFolder.common.id);
+    registerLUAParameter(&luaDomainApply, &luahandChangeDomainCmd, luaDomainFolder.common.id);
+
 
     // POWER folder
     registerLUAParameter(&luaPowerFolder);
@@ -795,6 +873,7 @@ static int event()
   }
   luadevUpdateModelID();
   setLuaTextSelectionValue(&luaModelMatch, (uint8_t)config.GetModelMatch());
+  setLuaTextSelectionValue(&luaDomain, firmwareOptions.domain);
   setLuaTextSelectionValue(&luaPower, config.GetPower() - MinPower);
   if (GPIO_PIN_FAN_EN != UNDEF_PIN || GPIO_PIN_FAN_PWM != UNDEF_PIN)
   {

@@ -1,7 +1,10 @@
 #include "rxtx_devLua.h"
+#include "FHSS.h"
 #include "POWERMGNT.h"
+#include "logging.h"
 
 char strPowerLevels[] = "10;25;50;100;250;500;1000;2000;MatchTX ";
+char strDomains[256] = "\0";
 const char STR_EMPTYSPACE[] = { 0 };
 const char STR_LUA_PACKETRATES[] =
 #if defined(RADIO_SX127X)
@@ -53,4 +56,28 @@ void luadevGeneratePowerOpts(luaItem_selection *luaPower)
   if (POWERMGNT::getMinPower() != POWERMGNT::getMaxPower())
     strcat(strPowerLevels, ";MatchTX ");
 #endif
+}
+
+void luadevGenerateDomainOpts(luaItem_selection *luaDomains)
+{
+  if (NULL != luaDomains->options && luaDomains->options[0] != '\0') {
+    return;
+  }
+  char *out = strDomains;
+  out[0] = '\0';
+  fhss_config_t const * fhss_table = getRegulatoryDomainsTable();
+  for (uint8_t i = 0; NULL != fhss_table[i].domain; i++) 
+  {
+    if (strlen(fhss_table[i].domain) + 1 > sizeof(strDomains) - strlen(strDomains)) 
+    {
+      DBGLN("luaDomains parsing terminated, buffer is too small");
+      break;
+    }
+    sprintf(out + strlen(out), "%s;", fhss_table[i].domain);
+  }
+  if (out[strlen(out) - 1] == ';') {
+    out[strlen(out) - 1] = '\0';
+  }
+  luaDomains->options = (const char *)out;
+  DBGLN("luaDomains parsed string %s", luaDomains->options);
 }

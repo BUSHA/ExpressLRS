@@ -34,7 +34,8 @@ const fhss_config_t domains[] = {
     //SHRIKE
     {"S-730-830",  FREQ_HZ_TO_REG_VAL(730000000), FREQ_HZ_TO_REG_VAL(830000000), 50},
     {"S-830-930",  FREQ_HZ_TO_REG_VAL(830000000), FREQ_HZ_TO_REG_VAL(930000000), 50},
-    {"S-900-1000",  FREQ_HZ_TO_REG_VAL(900000000), FREQ_HZ_TO_REG_VAL(1000000000), 50}
+    {"S-900-1000",  FREQ_HZ_TO_REG_VAL(900000000), FREQ_HZ_TO_REG_VAL(1000000000), 50},
+    {NULL, 0, 0, 0} // mandatory end-of-table field, keep it at the end of the table
 };
 
 #if defined(RADIO_LR1121)
@@ -114,6 +115,11 @@ void FHSSrandomiseFHSSsequence(const uint32_t seed)
     FHSSrandomiseFHSSsequenceBuild(seed, FHSSconfigDualBand->freq_count, sync_channel_DualBand, FHSSsequence_DualBand);
     FHSSusePrimaryFreqBand = true;
 #endif
+}
+
+const fhss_config_t * getRegulatoryDomainsTable()
+{
+    return domains;
 }
 
 /**

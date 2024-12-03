@@ -8,6 +8,7 @@
 
 // Common functions
 void luadevGeneratePowerOpts(luaItem_selection *luaPower);
+void luadevGenerateDomainOpts(luaItem_selection *luaDomains);
 
 // Common Lua storage (mutable)
 extern char strPowerLevels[];
