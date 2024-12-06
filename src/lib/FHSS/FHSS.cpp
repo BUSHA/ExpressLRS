@@ -81,6 +81,11 @@ int32_t FreqCorrection_2;
 uint32_t freq_spread;
 uint32_t freq_spread_DualBand;
 
+const fhss_config_t * getRegulatoryDomainsTable()
+{
+    return domains;
+}
+
 // Variable for Dual Band radios
 bool FHSSusePrimaryFreqBand = true;
 bool FHSSuseDualBand = false;
@@ -115,11 +120,6 @@ void FHSSrandomiseFHSSsequence(const uint32_t seed)
     FHSSrandomiseFHSSsequenceBuild(seed, FHSSconfigDualBand->freq_count, sync_channel_DualBand, FHSSsequence_DualBand);
     FHSSusePrimaryFreqBand = true;
 #endif
-}
-
-const fhss_config_t * getRegulatoryDomainsTable()
-{
-    return domains;
 }
 
 /**

@@ -40,6 +40,9 @@ extern uint8_t FHSSsequence[];
 extern uint_fast8_t sync_channel;
 extern const fhss_config_t *FHSSconfig;
 
+// return pointer to the domains table
+const fhss_config_t * getRegulatoryDomainsTable();
+
 // DualBand Variables
 extern bool FHSSusePrimaryFreqBand;
 extern bool FHSSuseDualBand;
@@ -48,9 +51,6 @@ extern uint32_t freq_spread_DualBand;
 extern uint8_t FHSSsequence_DualBand[];
 extern uint_fast8_t sync_channel_DualBand;
 extern const fhss_config_t *FHSSconfigDualBand;
-
-// return pointer to the domains table
-const fhss_config_t * getRegulatoryDomainsTable();
 
 // create and randomise an FHSS sequence
 void FHSSrandomiseFHSSsequence(uint32_t seed);

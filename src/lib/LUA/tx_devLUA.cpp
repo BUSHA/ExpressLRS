@@ -49,6 +49,7 @@ static struct luaItem_selection luaTlmRate = {
 };
 
 //----------------------------DOMAIN------------------
+
 char domainFolderDynamicName[128];
 static struct luaItem_folder luaDomainFolder = {
     {"Domain", CRSF_FOLDER},domainFolderDynamicName
@@ -719,11 +720,8 @@ static void registerLuaParameters()
     // Domain folder
     registerLUAParameter(&luaDomainFolder);
     luadevGenerateDomainOpts(&luaDomain);
-    registerLUAParameter(&luaDomain, [](struct luaPropertiesCommon *item, uint8_t arg) {
-      luaDomain.value = arg;
-    }, luaDomainFolder.common.id);
+    registerLUAParameter(&luaDomain, [](struct luaPropertiesCommon *item, uint8_t arg) { luaDomain.value = arg; }, luaDomainFolder.common.id);
     registerLUAParameter(&luaDomainApply, &luahandChangeDomainCmd, luaDomainFolder.common.id);
-
 
     // POWER folder
     registerLUAParameter(&luaPowerFolder);
@@ -873,7 +871,9 @@ static int event()
   }
   luadevUpdateModelID();
   setLuaTextSelectionValue(&luaModelMatch, (uint8_t)config.GetModelMatch());
+
   setLuaTextSelectionValue(&luaDomain, firmwareOptions.domain);
+
   setLuaTextSelectionValue(&luaPower, config.GetPower() - MinPower);
   if (GPIO_PIN_FAN_EN != UNDEF_PIN || GPIO_PIN_FAN_PWM != UNDEF_PIN)
   {
