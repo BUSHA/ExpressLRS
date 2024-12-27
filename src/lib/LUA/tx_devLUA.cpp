@@ -32,6 +32,26 @@ static const char luastrHeadTrackingEnable[] = "Off;On;" STR_LUA_ALLAUX_UPDOWN;
 static const char luastrHeadTrackingStart[] = STR_LUA_ALLAUX;
 static const char luastrOffOn[] = "Off;On";
 
+//MAFIA FRQ
+extern void SendRxDomainOverMSP(uint8_t rx_domain);
+extern bool RxSetDomainReadyToSend;
+extern uint8_t RxSetDomain;
+#if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
+extern unsigned long rebootTime;
+extern void setWifiUpdateMode();
+#endif
+#ifdef PLATFORM_STM32
+extern unsigned long rebootTime;
+#endif
+
+char DomainFolderDynamicName[20];
+static struct luaItem_selection luaDomainSync = {
+    {"Domain", CRSF_TEXT_SELECTION},
+    0, // value
+    DOMAIN_STRING,
+    STR_EMPTYSPACE
+};
+
 #define HAS_RADIO (GPIO_PIN_SCK != UNDEF_PIN)
 
 static struct luaItem_selection luaAirRate = {
@@ -647,6 +667,19 @@ static void registerLuaParameters()
       });
     }
 
+//MAFIA FRQ
+    // DomainSync with RX
+    registerLUAParameter(&luaDomainSync, [](struct luaPropertiesCommon *item, uint8_t arg)
+    {
+        DBGLN("luaDomainSync: %d", arg);
+        //SendRxDomainOverMSP(arg);
+        setLuaTextSelectionValue(&luaDomainSync, arg);
+        RxSetDomainReadyToSend = true;
+        RxSetDomain = arg;
+        //sendLuaCommandResponse((struct luaItem_command *)item, lcsExecuting, "Sending...");
+    }
+    );
+
     // POWER folder
     registerLUAParameter(&luaPowerFolder);
     luadevGeneratePowerOpts(&luaPower);
@@ -800,6 +833,13 @@ static int event()
   {
     setLuaTextSelectionValue(&luaFanThreshold, config.GetPowerFanThreshold());
   }
+
+  //MAFIA FRQ
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+    setLuaTextSelectionValue(&luaDomainSync, firmwareOptions.domain);
+#else
+    setLuaTextSelectionValue(&luaDomainSync, (uint8_t)config.GetDomain());
+#endif
 
   uint8_t dynamic = config.GetDynamicPower() ? config.GetBoostChannel() + 1 : 0;
   setLuaTextSelectionValue(&luaDynamicPower, dynamic);

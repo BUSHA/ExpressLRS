@@ -11,6 +11,22 @@ extern bool BindingModeRequest;
 static char modelString[] = "000";
 #if defined(GPIO_PIN_PWM_OUTPUTS)
 static char pwmModes[] = "50Hz;60Hz;100Hz;160Hz;333Hz;400Hz;10kHzDuty;On/Off;DShot;Serial RX;Serial TX;I2C SCL;I2C SDA";
+
+//MAFIA FRQ
+#if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
+extern unsigned long rebootTime;
+extern void setWifiUpdateMode();
+#endif
+#ifdef PLATFORM_STM32
+extern unsigned long rebootTime;
+#endif
+
+static struct luaItem_selection luaDomain = {
+    {"Domain (RX)", CRSF_TEXT_SELECTION},
+    0, // value
+    DOMAIN_STRING,
+    STR_EMPTYSPACE
+};
 #endif
 
 static struct luaItem_selection luaSerialProtocol = {
@@ -443,6 +459,21 @@ static void registerLuaParameters()
     });
   }
 
+//MAFIA FRQ
+    registerLUAParameter(&luaDomain, [](struct luaPropertiesCommon *item, uint8_t arg)
+    {
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+      firmwareOptions.domain = arg;
+      saveOptionsToFile();
+#else
+     config.SetDomain(arg);
+     config.Commit();
+#endif
+
+    rebootTime = millis() + 2000;
+    }
+    );
+
 #if defined(POWER_OUTPUT_VALUES)
   luadevGeneratePowerOpts(&luaTlmPower);
   registerLUAParameter(&luaTlmPower, &luaparamSetPower);
@@ -501,6 +532,13 @@ static int event()
   {
     setLuaTextSelectionValue(&luaDiversityMode, config.GetAntennaMode()); // Reusing SetAntennaMode since both GPIO_PIN_ANTENNA_SELECT and GPIO_PIN_NSS_2 will not be defined together.
   }
+
+  //MAFIA FRQ
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+    setLuaTextSelectionValue(&luaDomain, firmwareOptions.domain);
+#else
+    setLuaTextSelectionValue(&luaDomain, (uint8_t)config.GetDomain());
+#endif
 
 #if defined(POWER_OUTPUT_VALUES)
   // The last item (for MatchTX) will be MaxPower - MinPower + 1

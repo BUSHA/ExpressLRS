@@ -33,6 +33,11 @@ TxConfig config;
 Stream *TxBackpack;
 Stream *TxUSB;
 
+//MAFIA FRQ
+bool RxSetDomainReadyToSend = false;
+uint8_t RxSetDomain = 0;
+static uint8_t sync_domain = 0xFF;
+
 // Variables / constants for Airport //
 FIFO<AP_MAX_BUF_LEN> apInputBuffer;
 FIFO<AP_MAX_BUF_LEN> apOutputBuffer;
@@ -910,8 +915,33 @@ static void SendRxWiFiOverMSP()
   MspSender.SetDataToTransmit(MSPDataPackage, 1);
 }
 
+//MAFIA FRQ
+void SendRxDomainOverMSP(uint8_t domain)
+{
+  DBGLN("SendRxDomainOverMSP: %d", domain);
+  if (sync_domain != domain) {
+    MSPDataPackage[0] = MSP_ELRS_SET_RX_DOMAIIN_MODE;
+    MSPDataPackage[1] = domain;
+    MspSender.ResetState();
+    MspSender.SetDataToTransmit(MSPDataPackage, 2);
+    sync_domain = domain;
+    DBGLN("Done...");
+    rebootTime = millis() + 2000; // reboot after 2s
+    DBGLN("Save & Reboot after 2s...");
+  }
+}
+
 static void CheckReadyToSend()
 {
+
+  //MAFIA FRQ
+    if (RxSetDomainReadyToSend)
+  {
+    SendRxDomainOverMSP(RxSetDomain);
+    RxSetDomainReadyToSend = false;
+  }
+
+
   if (RxWiFiReadyToSend)
   {
     RxWiFiReadyToSend = false;
@@ -1318,6 +1348,14 @@ void setup()
     config.SetStorageProvider(&eeprom); // Pass pointer to the Config class for access to storage
     config.Load(); // Load the stored values from eeprom
 
+//MAFIA FRQ
+    #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+        sync_domain = firmwareOptions.domain;
+    #else
+        sync_domain = config.GetDomain();
+    #endif
+
+
     Radio.currFreq = FHSSgetInitialFreq(); //set frequency first or an error will occur!!!
     #if defined(RADIO_SX127X)
     //Radio.currSyncWord = UID[3];
@@ -1380,6 +1418,24 @@ void setup()
   }
 }
 
+//MAFIA FRQ
+static void check_domain()
+{
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+    if (firmwareOptions.domain != sync_domain) {
+        firmwareOptions.domain = sync_domain;
+        yield();
+        saveOptionsToFile();
+    }
+#else
+    if (config.GetDomain() != sync_domain)
+        config.SetDomain(sync_domain);
+        config.Commit();
+#endif
+    delay(250);
+}
+
+
 void loop()
 {
   uint32_t now = millis();
@@ -1409,9 +1465,20 @@ void loop()
   #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
     // If the reboot time is set and the current time is past the reboot time then reboot.
     if (rebootTime != 0 && now > rebootTime) {
-      ESP.restart();
+      
+      //MAFIA FRQ
+      //ESP.restart();
+      check_domain();
     }
   #endif
+
+  //MAFIA FRQ
+  #ifdef PLATFORM_STM32
+    if (rebootTime != 0 && now > rebootTime) {
+      check_domain();
+      NVIC_SystemReset();
+    }
+#endif
 
   executeDeferredFunction(micros());
 

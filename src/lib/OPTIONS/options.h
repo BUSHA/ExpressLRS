@@ -68,6 +68,11 @@ extern String& getOptions();
 extern String& getHardware();
 extern void saveOptions();
 
+//MAFIA FRQ
+extern void saveOptionsToFile();
+extern char *options_get_product_name();
+extern void resetOptions();
+
 #include "EspFlashStream.h"
 bool options_HasStringInFlash(EspFlashStream &strmFlash);
 void options_SetTrueDefaults();

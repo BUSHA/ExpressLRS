@@ -235,6 +235,24 @@ void saveOptions(Stream &stream, bool customised)
     serializeJson(doc, stream);
 }
 
+//MAFIA FRQ
+void resetOptions()
+{
+    SPIFFS.remove("/options.json");
+}
+
+void saveOptionsToFile()
+{
+    File options = SPIFFS.open("/options.json", "w");
+    saveOptions(options, true);
+    options.close();
+}
+
+char* options_get_product_name()
+{
+    return product_name;
+}
+
 void saveOptions()
 {
     File options = SPIFFS.open("/options.json", "w");

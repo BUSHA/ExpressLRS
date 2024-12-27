@@ -76,7 +76,8 @@ typedef union {
 typedef struct {
     uint32_t        version;
     uint8_t         vtxBand;    // 0=Off, else band number
-    uint8_t         vtxChannel; // 0=Ch1 -> 7=Ch8
+    // MAFIA FRQ
+    uint8_t         vtxChannel,Domain:1; // 0=Ch1 -> 7=Ch8
     uint8_t         vtxPower;   // 0=Do not set, else power number
     uint8_t         vtxPitmode; // Off/On/AUX1^/AUX1v/etc
     uint8_t         powerFanThreshold:4; // Power level to enable fan if present
@@ -127,6 +128,8 @@ public:
     model_config_t const &GetModelConfig(uint8_t model) const { return m_config.model_config[model]; }
     uint8_t GetPTRStartChannel() const { return m_model->ptrStartChannel; }
     uint8_t GetPTREnableChannel() const { return m_model->ptrEnableChannel; }
+    // MAFIA FRQ
+    uint8_t  GetDomain() const { return m_config.Domain; }
 
     // Setters
     void SetRate(uint8_t rate);
@@ -157,6 +160,9 @@ public:
 
     // State setters
     bool SetModelId(uint8_t modelId);
+
+    // MAFIA FRQ
+    void SetDomain(uint8_t domain);
 
 private:
 #if !defined(PLATFORM_ESP32)

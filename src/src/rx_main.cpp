@@ -219,6 +219,28 @@ static uint8_t debugRcvrLinkstatsFhssIdx;
 
 bool BindingModeRequest = false;
 
+//MAFIA FRQ
+static uint8_t sync_domain = 0xFF;
+static void check_domain()
+{
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+    if (firmwareOptions.domain != sync_domain) {
+        firmwareOptions.domain = sync_domain;
+        // Prevent WDT from rebooting too early if
+        // all this flash write is taking too long
+        yield();
+        // // Remove options.json and hardware.json
+        // SPIFFS.format();
+        saveOptionsToFile();
+    }
+#else
+    if (config.GetDomain() != sync_domain)
+        config.SetDomain(sync_domain);
+        config.Commit();
+#endif
+    delay(250);
+}
+
 extern void setWifiUpdateMode();
 
 uint8_t getLq()
@@ -1166,6 +1188,19 @@ void MspReceiveComplete()
 {
     switch (MspData[0])
     {
+//MAFIA FRQ
+    case MSP_ELRS_SET_RX_DOMAIIN_MODE: // 0x1E
+        DBGLN("MSP_ELRS_SET_RX_DOMAIIN_MODE: %d", MspData[1]);
+        if (sync_domain != MspData[1]) {
+            sync_domain = MspData[1];
+            rebootTime = millis() + 10000; // reboot after 6s for waiting TX
+            DBGLN("Save & Reboot after 10sec...");
+            deferExecutionMillis(500, []() {
+                setWifiUpdateMode();
+        });
+        }
+        break;
+
     case MSP_ELRS_SET_RX_WIFI_MODE: //0x0E
 #if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
         // The MSP packet needs to be ACKed so the TX doesn't
@@ -1860,6 +1895,13 @@ void setup()
         setupTarget();
 #endif
 
+//MAFIA FRQ
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+            sync_domain = firmwareOptions.domain;
+#else
+            sync_domain = config.GetDomain();
+#endif
+
         #if defined(OPT_HAS_SERVO_OUTPUT)
         // If serial is not already defined, then see if there is serial pin configured in the PWM configuration
         if (GPIO_PIN_RCSIGNAL_RX == UNDEF_PIN && GPIO_PIN_RCSIGNAL_TX == UNDEF_PIN)
@@ -1923,9 +1965,22 @@ void loop()
 #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
     // If the reboot time is set and the current time is past the reboot time then reboot.
     if (rebootTime != 0 && now > rebootTime) {
-        ESP.restart();
+
+        //MAFIA FRQ
+        //ESP.restart();
+        check_domain();
+
     }
     #endif
+
+    //MAFIA FRQ
+
+    #ifdef PLATFORM_STM32
+    if (rebootTime != 0 && now > rebootTime) {
+        check_domain();
+        NVIC_SystemReset();
+    }
+#endif
 
     CheckConfigChangePending();
     executeDeferredFunction(micros());
