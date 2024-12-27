@@ -16,6 +16,24 @@ extern bool BindingModeRequest;
 static char modelString[] = "000";
 #if defined(GPIO_PIN_PWM_OUTPUTS)
 static char pwmModes[] = "50Hz;60Hz;100Hz;160Hz;333Hz;400Hz;10kHzDuty;On/Off;DShot;Serial RX;Serial TX;I2C SCL;I2C SDA;Serial2 RX;Serial2 TX";
+
+#ifdef MAFIA_FRQ
+#if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
+extern unsigned long rebootTime;
+extern void setWifiUpdateMode();
+#endif
+#ifdef PLATFORM_STM32
+extern unsigned long rebootTime;
+#endif
+
+static struct luaItem_selection luaDomain = {
+    {"Domain (RX)", CRSF_TEXT_SELECTION},
+    0, // value
+    DOMAIN_STRING,
+    STR_EMPTYSPACE
+};
+#endif
+
 #endif
 
 static struct luaItem_selection luaSerialProtocol = {
@@ -342,16 +360,16 @@ static void luaparamMappingChannelOut(struct luaPropertiesCommon *item, uint8_t 
             pModeString = serial1_TX;
         }
         else
-        { 
+        {
             pModeString = no2Options;
         }
-    } 
+    }
     else
     {   // otherwise allow any pin to be either RX or TX but only once
         if (serial1txAssigned && !serial1rxAssigned)
         {
             pModeString = serial1_RX;
-        }        
+        }
         else if (serial1rxAssigned && !serial1txAssigned)
         {
             pModeString = serial1_TX;
@@ -360,7 +378,7 @@ static void luaparamMappingChannelOut(struct luaPropertiesCommon *item, uint8_t 
         else if (!serial1rxAssigned && !serial1txAssigned)
         {
             pModeString = serial1_BOTH;
-        } 
+        }
         else
         {
             pModeString = no2Options;
@@ -560,6 +578,23 @@ static void registerLuaParameters()
     });
   }
 
+#ifdef MAFIA_FRQ
+    registerLUAParameter(&luaDomain, [](struct luaPropertiesCommon *item, uint8_t arg)
+    {
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+      firmwareOptions.domain = arg;
+      saveOptionsToFile();
+#else
+     config.SetDomain(arg);
+     config.Commit();
+#endif
+
+    rebootTime = millis() + 2000;
+    }
+    );
+#endif
+
+
 #if defined(POWER_OUTPUT_VALUES)
   luadevGeneratePowerOpts(&luaTlmPower);
   registerLUAParameter(&luaTlmPower, &luaparamSetPower);
@@ -620,7 +655,7 @@ static int event()
     setLuaTextSelectionValue(&luaSerial1Protocol, config.GetSerial1Protocol());
   }
 #endif
-  
+
   setLuaTextSelectionValue(&luaSBUSFailsafeMode, config.GetFailsafeMode());
 
   if (GPIO_PIN_ANT_CTRL != UNDEF_PIN)
@@ -633,6 +668,15 @@ static int event()
   {
     setLuaTextSelectionValue(&luaDiversityMode, config.GetAntennaMode()); // Reusing SetAntennaMode since both GPIO_PIN_ANTENNA_SELECT and GPIO_PIN_NSS_2 will not be defined together.
   }
+
+#ifdef MAFIA_FRQ
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+    setLuaTextSelectionValue(&luaDomain, firmwareOptions.domain);
+#else
+    setLuaTextSelectionValue(&luaDomain, (uint8_t)config.GetDomain());
+#endif
+#endif
+
 
 #if defined(POWER_OUTPUT_VALUES)
   // The last item (for MatchTX) will be MaxPower - MinPower + 1

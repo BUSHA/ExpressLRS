@@ -701,6 +701,16 @@ TxConfig::SetModelId(uint8_t modelId)
 
     return false;
 }
+
+#ifdef MAFIA_FRQ
+void TxConfig::SetDomain(uint8_t domain)
+{
+    if (m_config.Domain != domain) {
+        m_config.Domain = domain;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+#endif
 #endif
 
 /////////////////////////////////////////////////////

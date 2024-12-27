@@ -652,7 +652,12 @@ static void WebUpdateSetHome(AsyncWebServerRequest *request)
   if (request->hasArg("save")) {
     strlcpy(firmwareOptions.home_wifi_ssid, ssid.c_str(), sizeof(firmwareOptions.home_wifi_ssid));
     strlcpy(firmwareOptions.home_wifi_password, password.c_str(), sizeof(firmwareOptions.home_wifi_password));
+#ifdef MAFIA_FRQ
+    saveOptionsToFile();
+#else
     saveOptions();
+#endif
+
   }
   WebUpdateConnect(request);
 }
@@ -661,7 +666,12 @@ static void WebUpdateForget(AsyncWebServerRequest *request)
 {
   DBGLN("Forget network");
   firmwareOptions.home_wifi_ssid[0] = 0;
-  firmwareOptions.home_wifi_password[0] = 0;
+#ifdef MAFIA_FRQ
+    saveOptionsToFile();
+#else
+    saveOptions();
+#endif
+
   saveOptions();
   station_ssid[0] = 0;
   station_password[0] = 0;

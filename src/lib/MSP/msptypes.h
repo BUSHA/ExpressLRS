@@ -59,3 +59,8 @@
 #define MSP_ELRS_BACKPACK_SET_HEAD_TRACKING     0x030D
 // incoming
 #define MSP_ELRS_BACKPACK_SET_PTR               0x0383
+
+#define MSP_ELRS_SET_RX_DOMAIIN_MODE        0x1E
+#define MSP_ELRS_SET_TX_DOMAIIN_MODE        0x1F
+#define MSP_ELRS_SET_SYNC_DOMAIIN_MODE      0x1D
+

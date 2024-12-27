@@ -39,6 +39,10 @@ __attribute__ ((used)) static firmware_options_t flashedOptions = {
     ._version_ = 3,
 #if defined(Regulatory_Domain_ISM_2400)
     .domain = 0,
+    #else
+#ifdef MAFIA_FRQ
+    .domain = 1, // Force domain by default FCC915
+
 #else
     #if defined(Regulatory_Domain_AU_915)
     .domain = 0,
@@ -59,6 +63,7 @@ __attribute__ ((used)) static firmware_options_t flashedOptions = {
     #else
     #error No regulatory domain defined, please define one in user_defines.txt
     #endif
+#endif
 #endif
 #if defined(MY_UID)
     .hasUID = true,
@@ -241,6 +246,25 @@ void saveOptions(Stream &stream, bool customised)
 
     serializeJson(doc, stream);
 }
+
+#ifdef MAFIA_FRQ
+void resetOptions()
+{
+    SPIFFS.remove("/options.json");
+}
+
+void saveOptionsToFile()
+{
+    File options = SPIFFS.open("/options.json", "w");
+    saveOptions(options, true);
+    options.close();
+}
+
+char* options_get_product_name()
+{
+    return product_name;
+}
+#endif
 
 void saveOptions()
 {
