@@ -37,9 +37,13 @@ const fhss_config_t domains[] = {
     //SHRIKE
     {"S-730-830",  FREQ_HZ_TO_REG_VAL(730000000), FREQ_HZ_TO_REG_VAL(830000000), 50, 780000000},
     {"S-830-930",  FREQ_HZ_TO_REG_VAL(830000000), FREQ_HZ_TO_REG_VAL(930000000), 50, 880000000},
-    {"S-900-1000", FREQ_HZ_TO_REG_VAL(900000000), FREQ_HZ_TO_REG_VAL(1000000000), 50, 950000000}
-    
-    // !!!! After any change update rxtx_devLua.h !!!!
+    {"S-900-1000", FREQ_HZ_TO_REG_VAL(900000000), FREQ_HZ_TO_REG_VAL(1000000000), 50, 950000000},
+    //VYRIY
+    {"V-735",  FREQ_HZ_TO_REG_VAL(723500000), FREQ_HZ_TO_REG_VAL(746900000), 40, 735000000},
+    {"V-750",  FREQ_HZ_TO_REG_VAL(738300000), FREQ_HZ_TO_REG_VAL(761700000), 40, 750000000},
+
+
+    // !!!! After any change, update domains in lib/LUA/rxtx_devLua.h !!!!
     };
 
 #if defined(RADIO_LR1121)
