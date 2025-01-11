@@ -181,6 +181,18 @@ void TxConfig::Load()
             m_config.backpackDisable = value8;
         if (nvs_get_u8(handle, "backpacktlmen", &value8) == ESP_OK)
             m_config.backpackTlmMode = value8;
+        if (nvs_get_u8(handle, "currentdomain", &value8) == ESP_OK)
+            m_config.currentDomain = value8;
+        if (nvs_get_u8(handle, "currentdomaindual", &value8) == ESP_OK)
+            m_config.currentDomainDual = value8;
+        if (nvs_get_u8(handle, "vtxchannelaux", &value8) == ESP_OK)
+            m_config.vtxChannelAux = value8;
+        if (nvs_get_u8(handle, "vtxbandaux", &value8) == ESP_OK)
+            m_config.vtxBandAux = value8;
+        if (nvs_get_u8(handle, "vtxchannelreso", &value8) == ESP_OK)
+            m_config.vtxChannelReso = value8;
+        if (nvs_get_u8(handle, "vtxbandreso", &value8) == ESP_OK)
+            m_config.vtxBandReso = value8;
     }
 
     for(unsigned i=0; i<CONFIG_TX_MODEL_CNT; i++)
@@ -283,6 +295,12 @@ void TxConfig::UpgradeEepromV6ToV7()
     LAZY(dvrAux);
     LAZY(dvrStartDelay);
     LAZY(dvrStopDelay);
+    LAZY(currentDomain);
+    LAZY(currentDomainDual);
+    LAZY(vtxChannelAux);
+    LAZY(vtxBandAux);
+    LAZY(vtxChannelReso);
+    LAZY(vtxBandReso);
     #undef LAZY
 
     for (unsigned i=0; i<CONFIG_TX_MODEL_CNT; i++)
@@ -343,6 +361,12 @@ TxConfig::Commit()
         nvs_set_u8(handle, "dvraux", m_config.dvrAux);
         nvs_set_u8(handle, "dvrstartdelay", m_config.dvrStartDelay);
         nvs_set_u8(handle, "dvrstopdelay", m_config.dvrStopDelay);
+        nvs_set_u8(handle, "currentdomain", m_config.currentDomain);
+        nvs_set_u8(handle, "currentdomaindual", m_config.currentDomainDual);
+        nvs_set_u8(handle, "vtxchannelaux", m_config.vtxChannelAux);
+        nvs_set_u8(handle, "vtxbandaux", m_config.vtxBandAux);
+        nvs_set_u8(handle, "vtxchannelreso", m_config.vtxChannelReso);
+        nvs_set_u8(handle, "vtxbandreso", m_config.vtxBandReso);
     }
     if (m_modified & BUTTON_CHANGED)
     {
@@ -477,6 +501,46 @@ TxConfig::SetVtxChannel(uint8_t vtxChannel)
 }
 
 void
+TxConfig::SetVtxChannelAux(uint8_t vtxChannelAux)
+{
+    if (m_config.vtxChannelAux != vtxChannelAux)
+    {
+        m_config.vtxChannelAux = vtxChannelAux;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+
+void
+TxConfig::SetVtxBandAux(uint8_t vtxBandAux)
+{
+    if (m_config.vtxBandAux != vtxBandAux)
+    {
+        m_config.vtxBandAux = vtxBandAux;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+
+void
+TxConfig::SetVtxChannelReso(uint8_t vtxChannelReso)
+{
+    if (m_config.vtxChannelReso != vtxChannelReso)
+    {
+        m_config.vtxChannelReso = vtxChannelReso;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+
+void
+TxConfig::SetVtxBandReso(uint8_t vtxBandReso)
+{
+    if (m_config.vtxBandReso != vtxBandReso)
+    {
+        m_config.vtxBandReso = vtxBandReso;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+
+void
 TxConfig::SetVtxPower(uint8_t vtxPower)
 {
     if (m_config.vtxPower != vtxPower)
@@ -595,20 +659,38 @@ TxConfig::SetButtonActions(uint8_t button, tx_button_color_t *action)
 }
 
 void
-TxConfig::SetPTRStartChannel(uint8_t ptrStartChannel)
+TxConfig::SetCurrentDomain(uint8_t currentDomain)
 {
-    if (ptrStartChannel != m_model->ptrStartChannel) {
-        m_model->ptrStartChannel = ptrStartChannel;
-        m_modified |= MODEL_CHANGED;
+    if (currentDomain != m_config.currentDomain) {
+        m_config.currentDomain = currentDomain;
+        m_modified |= MAIN_CHANGED;
     }
 }
 
 void
-TxConfig::SetPTREnableChannel(uint8_t ptrEnableChannel)
+TxConfig::SetRxDomain(uint8_t rxDomain)
 {
-    if (ptrEnableChannel != m_model->ptrEnableChannel) {
-        m_model->ptrEnableChannel = ptrEnableChannel;
-        m_modified |= MODEL_CHANGED;
+    if (rxDomain != m_config.rxDomain) {
+        m_config.rxDomain = rxDomain;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+
+void
+TxConfig::SetCurrentDomainDual(uint8_t currentDomainDual)
+{
+    if (currentDomainDual != m_config.currentDomainDual) {
+        m_config.currentDomainDual = currentDomainDual;
+        m_modified |= MAIN_CHANGED;
+    }
+}
+
+void
+TxConfig::SetRxDomainDual(uint8_t rxDomainDual)
+{
+    if (rxDomainDual != m_config.rxDomainDual) {
+        m_config.rxDomainDual = rxDomainDual;
+        m_modified |= MAIN_CHANGED;
     }
 }
 
@@ -701,16 +783,6 @@ TxConfig::SetModelId(uint8_t modelId)
 
     return false;
 }
-
-#ifdef MAFIA_FRQ
-void TxConfig::SetDomain(uint8_t domain)
-{
-    if (m_config.Domain != domain) {
-        m_config.Domain = domain;
-        m_modified |= MAIN_CHANGED;
-    }
-}
-#endif
 #endif
 
 /////////////////////////////////////////////////////
@@ -1246,6 +1318,26 @@ void RxConfig::SetBindStorage(rx_config_bindstorage_t value)
         m_modified = true;
     }
 }
+
+void
+RxConfig::SetCurrentDomain(uint8_t currentDomain)
+{
+    if (currentDomain != m_config.currentDomain) {
+        m_config.currentDomain = currentDomain;
+        m_modified = true;
+    }
+}
+
+#if defined(RADIO_LR1121)
+void
+RxConfig::SetCurrentDomainDual(uint8_t currentDomainDual)
+{
+    if (currentDomainDual != m_config.currentDomainDual) {
+        m_config.currentDomainDual = currentDomainDual;
+        m_modified = true;
+    }
+}
+#endif
 
 void RxConfig::SetTargetSysId(uint8_t value)
 {

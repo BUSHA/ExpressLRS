@@ -20,6 +20,8 @@ bool HTEnableFlagReadyToSend = false;
 bool BackpackTelemReadyToSend = false;
 
 bool lastRecordingState = false;
+uint8_t lastVtxBandState = 4;
+uint8_t lastVtxChannelState = 8;
 
 #if defined(GPIO_PIN_BACKPACK_EN)
 
@@ -223,38 +225,165 @@ uint8_t GetDvrDelaySeconds(uint8_t index)
     return delays[index >= sizeof(delays) ? 0 : index];
 }
 
+// TODO we'll need proper mappings later
+// Maps AUX Switch position to corresponding VTx band
+int getMappedBand(int input, int reso) {
+    //-----------------------------------
+    //| OFF | A | B | E | F | R | L | X |
+    //|  0  | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+    //-----------------------------------
+    switch (reso) {
+        case 0:  //2
+            switch (input) {
+                case 0:
+                    return 5; //R
+                case 1:
+                    return 6; //L 
+                default:
+                    return 0; // Return 0 for unknown inputs
+            }
+        case 1: //3
+            switch (input) {
+                case 0:
+                    return 5; //R
+                case 1:
+                    return 6; //L
+                case 2:
+                    return 7; //X
+                default:
+                    return 0; // Return 0 for unknown inputs
+            }
+        case 2: //6
+            switch (input) {
+                case 0:
+                    return 1; //A
+                case 1:
+                    return 2; //B
+                case 2:
+                    return 3; //E
+                case 3:
+                    return 5; //R
+                case 4:
+                    return 6; //L
+                case 5:
+                    return 7; //X
+                default:
+                    return 0; // Return 0 for unknown inputs
+            }
+        case 3: //8 
+            switch (input) { 
+                case 0:
+                    return 1; //A
+                case 1:
+                    return 2; //B
+                case 2:
+                    return 3; //E
+                case 3:
+                    return 4; //F
+                case 4:
+                    return 5; //R
+                case 5:
+                    return 6; //L
+                case 6:
+                    return 7; //X
+                default:
+                    return 0; // Return 0 for unknown inputs
+            }
+        default: 
+            return 0;
+    }
+}
+
+// TODO we'll need proper mappings later
+// Maps AUX Switch position to corresponding VTx channel
+int getMappedChannel(int input) {
+       switch (input) {
+        case 0:
+            return 0; //Ch1
+        case 1:
+            return 1; //Ch2
+        case 2:
+            return 2; //Ch3
+        case 3:
+            return 3; //Ch4
+        case 4:
+            return 4;
+        case 5:
+            return 5;
+        case 6:
+            return 6;
+        case 7:
+            return 7;  //Ch8   
+        default:
+            return 0;  // Return 0 for unknown inputs
+       }
+}
+
+int getMappedResolution(u_int8_t input) {
+    switch(input){
+        case 0:
+            return 2; // 2-Pos
+        case 1:
+            return 3; // 3-Pos
+        case 2:
+            return 6; // 6-Pos
+        case 3:
+            return 8; // 8-Pos
+        default:
+            return 2; // 2-Pos switch default
+    } 
+}
+
 static void AuxStateToMSPOut()
 {
 #if defined(USE_TX_BACKPACK)
     if (config.GetDvrAux() == 0)
     {
-        // DVR AUX control is off
-        return;
+        // DVR Recording
+        const uint8_t auxNumber = (config.GetDvrAux() - 1) / 2 + 4;
+        const uint8_t auxInverted = (config.GetDvrAux() + 1) % 2;
+
+        const bool recordingState = CRSF_to_BIT(ChannelData[auxNumber]) ^ auxInverted;
+
+        if (recordingState != lastRecordingState)
+        {
+            lastRecordingState = recordingState;
+
+            const uint16_t delay = GetDvrDelaySeconds(recordingState ? config.GetDvrStartDelay() : config.GetDvrStopDelay());
+
+            mspPacket_t packet;
+            packet.reset();
+            packet.makeCommand();
+            packet.function = MSP_ELRS_BACKPACK_SET_RECORDING_STATE;
+            packet.addByte(recordingState);
+            packet.addByte(delay & 0xFF); // delay byte 1
+            packet.addByte(delay >> 8); // delay byte 2
+
+            MSP::sendPacket(&packet, TxBackpack); // send to tx-backpack as MSP
+        }
     }
 
-    const uint8_t auxNumber = (config.GetDvrAux() - 1) / 2 + 4;
-    const uint8_t auxInverted = (config.GetDvrAux() + 1) % 2;
-
-    const bool recordingState = CRSF_to_BIT(ChannelData[auxNumber]) ^ auxInverted;
-
-    if (recordingState == lastRecordingState)
+    // VTX Band\Channel
+    const uint8_t vtxBandAux = (config.GetVtxBandAux() - 1) + 4;
+    const uint8_t vtxChannelAux = (config.GetVtxChannelAux() - 1) + 4;
+    const uint8_t bandState = getMappedBand(CRSF_to_N(ChannelData[vtxBandAux], getMappedResolution(config.GetVtxBandReso())), config.GetVtxBandReso());
+    const uint8_t channelState = getMappedChannel(CRSF_to_N(ChannelData[vtxChannelAux], getMappedResolution(config.GetVtxChannelReso())));
+    if (bandState != lastVtxBandState || channelState != lastVtxChannelState)
     {
-        // Channel state has not changed since we last checked
-        return;
+        lastVtxBandState = bandState;
+        lastVtxChannelState = channelState;
+        uint8_t vtxIdx = (bandState - 1) * 8 + channelState;
+
+        mspPacket_t packet;
+        packet.reset();
+        packet.makeCommand();
+        packet.function = MSP_SET_VTX_CONFIG;
+        packet.addByte(vtxIdx);     // band/channel or frequency low byte
+        packet.addByte(0);          // frequency high byte, if frequency mode
+
+        CRSF::AddMspMessage(&packet, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+        MSP::sendPacket(&packet, TxBackpack); // send to tx-backpack as MSP
     }
-    lastRecordingState = recordingState;
-
-    const uint16_t delay = GetDvrDelaySeconds(recordingState ? config.GetDvrStartDelay() : config.GetDvrStopDelay());
-
-    mspPacket_t packet;
-    packet.reset();
-    packet.makeCommand();
-    packet.function = MSP_ELRS_BACKPACK_SET_RECORDING_STATE;
-    packet.addByte(recordingState);
-    packet.addByte(delay & 0xFF); // delay byte 1
-    packet.addByte(delay >> 8); // delay byte 2
-
-    MSP::sendPacket(&packet, TxBackpack); // send to tx-backpack as MSP
 #endif // USE_TX_BACKPACK
 }
 
