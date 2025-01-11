@@ -35,7 +35,6 @@ extern char backpackVersion[];
 
 static char version_domain[20+1+6+1];
 char pwrFolderDynamicName[] = "TX Power (1000 Dynamic)";
-char domainFolderDynamicName[] = "RF Domain";
 char vtxFolderDynamicName[] = "VTX Admin (OFF:C:1 Aux11 )";
 static char modelMatchUnit[] = " (ID: 00)";
 static char tlmBandwidth[] = " (xxxxxbps)";
@@ -50,12 +49,32 @@ static const char antennamodeOpts[] = "Gemini;Ant 1;Ant 2;Switch";
 static const char linkModeOpts[] = "Normal;MAVLink";
 static const char luastrDvrAux[] = "Off;" STR_LUA_ALLAUX_UPDOWN;
 static const char luastrDvrDelay[] = "0s;5s;15s;30s;45s;1min;2min";
-static const char luastrVtxBand[] = "Off;" STR_LUA_ALLAUX;
-static const char luastrVtxChannel[] = "Off;" STR_LUA_ALLAUX;
-static const char luastrVtxBandReso[] = "2;3;6;8";
-static const char luastrVtxChannelReso[] = "2;3;6;8";
+static const char luastrHeadTrackingEnable[] = "Off;On;" STR_LUA_ALLAUX_UPDOWN;
+static const char luastrHeadTrackingStart[] = STR_LUA_ALLAUX;
 static const char luastrOffOn[] = "Off;On";
 static char luastrPacketRates[] = STR_LUA_PACKETRATES;
+
+#ifdef MAFIA_FRQ
+extern void SendRxDomainOverMSP(uint8_t rx_domain);
+extern bool RxSetDomainReadyToSend;
+extern uint8_t RxSetDomain;
+#if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
+extern unsigned long rebootTime;
+extern void setWifiUpdateMode();
+#endif
+#ifdef PLATFORM_STM32
+extern unsigned long rebootTime;
+#endif
+
+char DomainFolderDynamicName[20];
+static struct luaItem_selection luaDomainSync = {
+    {"Domain", CRSF_TEXT_SELECTION},
+    0, // value
+    DOMAIN_STRING,
+    STR_EMPTYSPACE
+};
+#endif
+
 
 #define HAS_RADIO (GPIO_PIN_SCK != UNDEF_PIN)
 
@@ -73,118 +92,12 @@ static struct luaItem_selection luaTlmRate = {
     tlmBandwidth
 };
 
-//----------------------------DOMAIN------------------
-extern const fhss_config_t* getDomains();
-
-static const char* buildRxDomainString() {
-    static std::string rxDomainString; 
-    rxDomainString.clear();
-
-    const fhss_config_t* domains = getDomains();
-    size_t domainCount = getDomainCount();
-
-    for (size_t i = 0; i < domainCount; ++i) {
-        rxDomainString += domains[i].domain;
-        if (i < domainCount - 1) {
-            rxDomainString += ";"; 
-        }
-    }
-
-    return rxDomainString.c_str();
-}
-
-static const char* buildTxDomainString() {
-    static std::string txDomainString; 
-    txDomainString.clear();
-
-    const fhss_config_t* domains = getDomains();
-    size_t domainCount = getDomainCount();
-
-    for (size_t i = 0; i < domainCount; ++i) {
-        txDomainString += domains[i].domain;
-        if (i < domainCount - 1) {
-            txDomainString += ";"; 
-        }
-    }
-
-    return txDomainString.c_str();
-}
-
-static const char* rxDomainString = buildRxDomainString();
-static const char* txDomainString = buildTxDomainString();
-
-static struct luaItem_selection luaDomainSelectTx = {
-    {"Tx Domain", CRSF_TEXT_SELECTION},
-    config.GetCurrentDomain(), // value
-    txDomainString,
-    STR_EMPTYSPACE
-};
-
-static struct luaItem_selection luaDomainSelectRx = {
-    {"Rx Domain", CRSF_TEXT_SELECTION},
-    config.GetRxDomain(), // value
-    rxDomainString,
-    STR_EMPTYSPACE
-};
-
-#if defined(RADIO_LR1121)
-static const char* buildDualDomainRxString() {
-    static std::string dDomainRxString; 
-    dDomainRxString.clear();
-
-    const fhss_config_t* domains = getDualDomains();
-    size_t domainCount = getDualDomainCount();
-
-    for (size_t i = 0; i < domainCount; ++i) {
-        dDomainRxString += domains[i].domain;
-        if (i < domainCount - 1) {
-            dDomainRxString += ";"; 
-        }
-    }
-
-    return dDomainRxString.c_str();
-}
-
-static const char* buildDualDomainTxString() {
-    static std::string dDomainTxString; 
-    dDomainTxString.clear();
-
-    const fhss_config_t* domains = getDualDomains();
-    size_t domainCount = getDualDomainCount();
-
-    for (size_t i = 0; i < domainCount; ++i) {
-        dDomainTxString += domains[i].domain;
-        if (i < domainCount - 1) {
-            dDomainTxString += ";"; 
-        }
-    }
-
-    return dDomainTxString.c_str();
-}
-static const char* dualDomainRxString = buildDualDomainRxString();
-static const char* dualDomainTxString = buildDualDomainTxString();
-
-static struct luaItem_selection luaDomainSelectTxDual = {
-    {"Tx Dual D", CRSF_TEXT_SELECTION},
-    config.GetCurrentDomainDual(), // value
-    dualDomainTxString,
-    STR_EMPTYSPACE
-};
-
-static struct luaItem_selection luaDomainSelectRxDual = {
-    {"Rx Dual D", CRSF_TEXT_SELECTION},
-    config.GetRxDomainDual(), // value
-    dualDomainRxString,
-    STR_EMPTYSPACE
-};
-#endif
-
 //----------------------------POWER------------------
 static struct luaItem_folder luaPowerFolder = {
     {"TX Power", CRSF_FOLDER},pwrFolderDynamicName
 };
 
-static struct luaItem_selection luaPower= {
+static struct luaItem_selection luaPower = {
     {"Max Power", CRSF_TEXT_SELECTION},
     0, // value
     strPowerLevels,
@@ -310,7 +223,7 @@ static struct luaItem_folder luaVtxFolder = {
 static struct luaItem_selection luaVtxBand = {
     {"Band", CRSF_TEXT_SELECTION},
     0, // value
-    "Off;A;B;E;F;R;L;X",
+    "Off;A;B;E;F;R;L",
     STR_EMPTYSPACE
 };
 
@@ -354,7 +267,7 @@ struct luaItem_selection luaBluetoothTelem = {
 
 //---------------------------- BACKPACK ------------------
 static struct luaItem_folder luaBackpackFolder = {
-    {"Backpack Pro", CRSF_FOLDER},
+    {"Backpack", CRSF_FOLDER},
 };
 
 #if defined(GPIO_PIN_BACKPACK_EN)
@@ -383,28 +296,16 @@ static struct luaItem_selection luaDvrStopDelay = {
     luastrDvrDelay,
     STR_EMPTYSPACE};
 
-static struct luaItem_selection luaVtxBandAux = {
-    {"VTx Band", CRSF_TEXT_SELECTION},
-    config.GetVtxBandAux(), // value
-    luastrVtxBand,
+static struct luaItem_selection luaHeadTrackingEnableChannel = {
+    {"HT Enable", CRSF_TEXT_SELECTION},
+    0, // value
+    luastrHeadTrackingEnable,
     STR_EMPTYSPACE};
 
-static struct luaItem_selection luaVtxBandReso = {
-    {"Band Reso", CRSF_TEXT_SELECTION},
-    config.GetVtxBandReso(), // value
-    luastrVtxBandReso,
-    STR_EMPTYSPACE};
-
-static struct luaItem_selection luaVtxChannelAux = {
-    {"VTx Channel", CRSF_TEXT_SELECTION},
-    config.GetVtxChannelAux(), // value
-    luastrVtxChannel,
-    STR_EMPTYSPACE};
-
-  static struct luaItem_selection luaVtxChannelReso = {
-    {"Channel reso", CRSF_TEXT_SELECTION},
-    config.GetVtxChannelReso(), // value
-    luastrVtxChannelReso,
+static struct luaItem_selection luaHeadTrackingStartChannel = {
+    {"HT Start Channel", CRSF_TEXT_SELECTION},
+    0, // value
+    luastrHeadTrackingStart,
     STR_EMPTYSPACE};
 
 static struct luaItem_selection luaBackpackTelemetry = {
@@ -494,10 +395,8 @@ static void luadevUpdateBackpackOpts()
     LUA_FIELD_HIDE(luaDvrAux);
     LUA_FIELD_HIDE(luaDvrStartDelay);
     LUA_FIELD_HIDE(luaDvrStopDelay);
-    LUA_FIELD_HIDE(luaVtxBandAux);
-    LUA_FIELD_HIDE(luaVtxBandReso);
-    LUA_FIELD_HIDE(luaVtxChannelAux);
-    LUA_FIELD_HIDE(luaVtxChannelReso);
+    LUA_FIELD_HIDE(luaHeadTrackingEnableChannel);
+    LUA_FIELD_HIDE(luaHeadTrackingStartChannel);
     LUA_FIELD_HIDE(luaBackpackTelemetry);
     LUA_FIELD_HIDE(luaBackpackVersion);
   }
@@ -506,24 +405,10 @@ static void luadevUpdateBackpackOpts()
     LUA_FIELD_SHOW(luaDvrAux);
     LUA_FIELD_SHOW(luaDvrStartDelay);
     LUA_FIELD_SHOW(luaDvrStopDelay);
-    LUA_FIELD_SHOW(luaVtxBandAux);
-    LUA_FIELD_SHOW(luaVtxBandReso);
-    LUA_FIELD_SHOW(luaVtxChannelAux);
-    LUA_FIELD_SHOW(luaVtxChannelReso);
+    LUA_FIELD_SHOW(luaHeadTrackingEnableChannel);
+    LUA_FIELD_SHOW(luaHeadTrackingStartChannel);
     LUA_FIELD_SHOW(luaBackpackTelemetry);
     LUA_FIELD_SHOW(luaBackpackVersion);
-  }
-  // VTx Band settings
-  if (config.GetVtxBandAux() == 0) {
-    LUA_FIELD_HIDE(luaVtxBandReso);
-  } else {
-    LUA_FIELD_SHOW(luaVtxBandReso);
-  }
-  // VTx Channel settings
-  if (config.GetVtxChannelAux() == 0) {
-    LUA_FIELD_HIDE(luaVtxChannelReso);
-  } else {
-    LUA_FIELD_SHOW(luaVtxChannelReso);
   }
 }
 
@@ -768,50 +653,6 @@ uint8_t adjustSwitchModeForAirRate(OtaSwitchMode_e eSwitchMode, uint8_t packetSi
 static void registerLuaParameters()
 {
   if (HAS_RADIO) {
-    registerLUAParameter(&luaDomainSelectTx, [](luaPropertiesCommon *item, uint8_t arg) {
-      const fhss_config_t* domains = getDomains();
-      FHSSconfig = &domains[arg];
-      config.SetCurrentDomain(arg);
-    });
-
-    registerLUAParameter(&luaDomainSelectRx, [](luaPropertiesCommon *item, uint8_t arg) {
-      config.SetRxDomain(arg);
-      if (connectionState == connected)
-      {
-        mspPacket_t msp;
-        msp.reset();
-        msp.makeCommand();
-        msp.function = MSP_SET_RX_CONFIG;
-        msp.addByte(MSP_ELRS_RF_MODE);
-        msp.addByte(arg);
-        msp.addByte(0);//0 is for low band, 1 is for hi band
-        CRSF::AddMspMessage(&msp, CRSF_ADDRESS_CRSF_RECEIVER);
-      }
-    });
-
-#if defined(RADIO_LR1121)
-    registerLUAParameter(&luaDomainSelectTxDual, [](luaPropertiesCommon *item, uint8_t arg) {
-      const fhss_config_t* dualDomains = getDualDomains();
-      FHSSconfigDualBand = &dualDomains[arg];
-      config.SetCurrentDomainDual(arg);
-    });
-
-    registerLUAParameter(&luaDomainSelectRxDual, [](luaPropertiesCommon *item, uint8_t arg) {
-      config.SetRxDomainDual(arg);
-      if (connectionState == connected)
-      {
-        mspPacket_t msp;
-        msp.reset();
-        msp.makeCommand();
-        msp.function = MSP_SET_RX_CONFIG;
-        msp.addByte(MSP_ELRS_RF_MODE);
-        msp.addByte(arg);
-        msp.addByte(1);//0 is for low band, 1 is for hi band
-        CRSF::AddMspMessage(&msp, CRSF_ADDRESS_CRSF_RECEIVER);
-      }
-    });
-#endif
-
     registerLUAParameter(&luaAirRate, [](struct luaPropertiesCommon *item, uint8_t arg) {
     if (arg < RATE_MAX)
     {
@@ -915,6 +756,21 @@ static void registerLuaParameters()
       });
     }
 
+#ifdef MAFIA_FRQ
+    // DomainSync with RX
+    registerLUAParameter(&luaDomainSync, [](struct luaPropertiesCommon *item, uint8_t arg)
+    {
+        DBGLN("luaDomainSync: %d", arg);
+        //SendRxDomainOverMSP(arg);
+        setLuaTextSelectionValue(&luaDomainSync, arg);
+        RxSetDomainReadyToSend = true;
+        RxSetDomain = arg;
+        //sendLuaCommandResponse((struct luaItem_command *)item, lcsExecuting, "Sending...");
+    }
+    );
+#endif
+
+
     // POWER folder
     registerLUAParameter(&luaPowerFolder);
     luadevGeneratePowerOpts(&luaPower);
@@ -1004,23 +860,13 @@ static void registerLuaParameters()
           },
           luaBackpackFolder.common.id);
       registerLUAParameter(
-          &luaVtxBandAux, [](luaPropertiesCommon *item, uint8_t arg) {
-              config.SetVtxBandAux(arg);
+          &luaHeadTrackingEnableChannel, [](luaPropertiesCommon *item, uint8_t arg) {
+              config.SetPTREnableChannel(arg);
           },
           luaBackpackFolder.common.id);
       registerLUAParameter(
-          &luaVtxBandReso, [](luaPropertiesCommon *item, uint8_t arg) {
-              config.SetVtxBandReso(arg);
-          },
-          luaBackpackFolder.common.id);
-      registerLUAParameter(
-          &luaVtxChannelAux, [](luaPropertiesCommon *item, uint8_t arg) {
-              config.SetVtxChannelAux(arg);
-          },
-          luaBackpackFolder.common.id);
-      registerLUAParameter(
-          &luaVtxChannelReso, [](luaPropertiesCommon *item, uint8_t arg) {
-              config.SetVtxChannelReso(arg);
+          &luaHeadTrackingStartChannel, [](luaPropertiesCommon *item, uint8_t arg) {
+              config.SetPTRStartChannel(arg);
           },
           luaBackpackFolder.common.id);
       registerLUAParameter(
@@ -1045,9 +891,6 @@ static void registerLuaParameters()
   if (strlen(version) < 21) {
     strlcpy(version_domain, version, 21);
     strlcat(version_domain, " ", sizeof(version_domain));
-  } else {
-    strlcpy(version_domain, version, 18);
-    strlcat(version_domain, "... ", sizeof(version_domain));
   }
   strlcat(version_domain, FHSSconfig->domain, sizeof(version_domain));
   registerLUAParameter(&luaELRSversion);
@@ -1064,14 +907,7 @@ static int event()
   bool isMavlinkMode = config.GetLinkMode() == TX_MAVLINK_MODE;
   uint8_t currentRate = adjustPacketRateForBaud(config.GetRate());
   recalculatePacketRateOptions(handset->getMinPacketInterval());
-
   setLuaTextSelectionValue(&luaAirRate, RATE_MAX - 1 - currentRate);
-#if defined(RADIO_LR1121)
-  setLuaTextSelectionValue(&luaDomainSelectTxDual, config.GetCurrentDomainDual());
-  setLuaTextSelectionValue(&luaDomainSelectRxDual, config.GetRxDomainDual());
-#endif
-  setLuaTextSelectionValue(&luaDomainSelectTx, config.GetCurrentDomain());
-  setLuaTextSelectionValue(&luaDomainSelectRx, config.GetRxDomain());
 
   setLuaTextSelectionValue(&luaTlmRate, config.GetTlm());
   luaTlmRate.options = isMavlinkMode ? tlmRatiosMav : tlmRatios;
@@ -1099,15 +935,20 @@ static int event()
     setLuaTextSelectionValue(&luaFanThreshold, config.GetPowerFanThreshold());
   }
 
+  #ifdef MAFIA_FRQ
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+    setLuaTextSelectionValue(&luaDomainSync, firmwareOptions.domain);
+#else
+    setLuaTextSelectionValue(&luaDomainSync, (uint8_t)config.GetDomain());
+#endif
+#endif
+
+
   uint8_t dynamic = config.GetDynamicPower() ? config.GetBoostChannel() + 1 : 0;
   setLuaTextSelectionValue(&luaDynamicPower, dynamic);
 
   setLuaTextSelectionValue(&luaVtxBand, config.GetVtxBand());
   setLuaUint8Value(&luaVtxChannel, config.GetVtxChannel() + 1);
-  setLuaTextSelectionValue(&luaVtxBandAux, config.GetVtxBandAux());
-  setLuaTextSelectionValue(&luaVtxChannelAux, config.GetVtxChannelAux());
-    setLuaTextSelectionValue(&luaVtxBandReso, config.GetVtxBandReso());
-  setLuaTextSelectionValue(&luaVtxChannelReso, config.GetVtxChannelReso());
   setLuaTextSelectionValue(&luaVtxPwr, config.GetVtxPower());
   setLuaTextSelectionValue(&luaVtxPit, config.GetVtxPitmode());
   if (OPT_USE_TX_BACKPACK)
@@ -1118,6 +959,8 @@ static int event()
     setLuaTextSelectionValue(&luaDvrAux, config.GetBackpackDisable() ? 0 : config.GetDvrAux());
     setLuaTextSelectionValue(&luaDvrStartDelay, config.GetBackpackDisable() ? 0 : config.GetDvrStartDelay());
     setLuaTextSelectionValue(&luaDvrStopDelay, config.GetBackpackDisable() ? 0 : config.GetDvrStopDelay());
+    setLuaTextSelectionValue(&luaHeadTrackingEnableChannel, config.GetBackpackDisable() ? 0 : config.GetPTREnableChannel());
+    setLuaTextSelectionValue(&luaHeadTrackingStartChannel, config.GetBackpackDisable() ? 0 : config.GetPTRStartChannel());
     setLuaTextSelectionValue(&luaBackpackTelemetry, config.GetBackpackDisable() ? 0 : config.GetBackpackTlmMode());
     setLuaStringValue(&luaBackpackVersion, backpackVersion);
   }

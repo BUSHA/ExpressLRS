@@ -53,6 +53,8 @@ typedef struct {
                 dynamicPower:1,
                 modelMatch:1,
                 txAntenna:2,    // FUTURE: Which TX antenna to use, 0=Auto
+                ptrStartChannel:4,
+                ptrEnableChannel:5,
                 linkMode:3;
 } model_config_t;
 
@@ -81,7 +83,11 @@ typedef enum {
 typedef struct {
     uint32_t        version;
     uint8_t         vtxBand;    // 0=Off, else band number
+#ifdef MAFIA_FRQ
+    uint8_t         vtxChannel,Domain:1; // 0=Ch1 -> 7=Ch8
+#else
     uint8_t         vtxChannel; // 0=Ch1 -> 7=Ch8
+#endif
     uint8_t         vtxPower;   // 0=Do not set, else power number
     uint8_t         vtxPitmode; // Off/On/AUX1^/AUX1v/etc
     uint8_t         powerFanThreshold:4; // Power level to enable fan if present
@@ -93,14 +99,6 @@ typedef struct {
                     backpackTlmMode:2;  // 0=Off, 1=Fwd tlm via espnow, 2=fwd tlm via wifi 3=(FUTURE) bluetooth
     uint8_t         dvrStartDelay:3,
                     dvrAux:5;
-    uint8_t         currentDomain, 
-                    rxDomain,
-                    currentDomainDual,
-                    rxDomainDual;
-    uint8_t         vtxChannelAux,
-                    vtxBandAux,
-                    vtxChannelReso,
-                    vtxBandReso;
     tx_button_color_t buttonColors[2];  // FUTURE: TX RGB color / mode (sets color of TX, can be a static color or standard)
                                         // FUTURE: Model RGB color / mode (sets LED color mode on the model, but can be second TX led color too)
                                         // FUTURE: Custom button actions
@@ -138,14 +136,12 @@ public:
     uint8_t  GetBackpackTlmMode() const { return m_config.backpackTlmMode; }
     tx_button_color_t const *GetButtonActions(uint8_t button) const { return &m_config.buttonColors[button]; }
     model_config_t const &GetModelConfig(uint8_t model) const { return m_config.model_config[model]; }
-    uint8_t GetCurrentDomain() const {return m_config.currentDomain;}
-    uint8_t GetRxDomain() const {return m_config.rxDomain;}
-    uint8_t GetCurrentDomainDual() const {return m_config.currentDomainDual;}
-    uint8_t GetRxDomainDual() const {return m_config.rxDomainDual;}
-    uint8_t GetVtxChannelAux() const {return m_config.vtxChannelAux;}
-    uint8_t GetVtxBandAux() const {return m_config.vtxBandAux;}
-    uint8_t GetVtxChannelReso() const {return m_config.vtxChannelReso;}
-    uint8_t GetVtxBandReso() const {return m_config.vtxBandReso;}
+    uint8_t GetPTRStartChannel() const { return m_model->ptrStartChannel; }
+    uint8_t GetPTREnableChannel() const { return m_model->ptrEnableChannel; }
+#ifdef MAFIA_FRQ
+    uint8_t  GetDomain() const { return m_config.Domain; }
+#endif
+
 
     // Setters
     void SetRate(uint8_t rate);
@@ -174,17 +170,13 @@ public:
     void SetBackpackTlmMode(uint8_t mode);
     void SetPTRStartChannel(uint8_t ptrStartChannel);
     void SetPTREnableChannel(uint8_t ptrEnableChannel);
-    void SetCurrentDomain(uint8_t currentDomain);
-    void SetRxDomain(uint8_t rxDomain);
-    void SetCurrentDomainDual(uint8_t currentDomainDual);
-    void SetRxDomainDual(uint8_t rxDomainDual);
-    void SetVtxBandAux(uint8_t vtxBandAux);
-    void SetVtxChannelAux(uint8_t vtxChannelAux);
-    void SetVtxBandReso(uint8_t vtxBandReso);
-    void SetVtxChannelReso(uint8_t vtxChannelReso);
 
     // State setters
     bool SetModelId(uint8_t modelId);
+#ifdef MAFIA_FRQ
+    void SetDomain(uint8_t domain);
+#endif
+
 
 private:
 #if !defined(PLATFORM_ESP32)
@@ -257,8 +249,6 @@ typedef struct __attribute__((packed)) {
                 teamracePitMode:1;  // FUTURE: Enable pit mode when disabling model
     uint8_t     targetSysId;
     uint8_t     sourceSysId;
-    uint8_t     currentDomain,
-                currentDomainDual;
 } rx_config_t;
 
 class RxConfig
@@ -297,7 +287,6 @@ public:
     uint8_t GetSourceSysId()  const { return m_config.sourceSysId; }
     rx_config_bindstorage_t GetBindStorage() const { return (rx_config_bindstorage_t)m_config.bindStorage; }
     bool IsOnLoan() const;
-    uint8_t GetCurrentDomain() const {return m_config.currentDomain;}
 
     // Setters
     void SetUID(uint8_t* uid);
@@ -324,10 +313,6 @@ public:
     void SetSourceSysId(uint8_t sysID);
     void SetBindStorage(rx_config_bindstorage_t value);
     void ReturnLoan();
-    void SetCurrentDomain(uint8_t currentDomain);
-#if defined(RADIO_LR1121)
-    void SetCurrentDomainDual(uint8_t currentDomain);
-#endif
 
 private:
     void CheckUpdateFlashedUid(bool skipDescrimCheck);
