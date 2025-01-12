@@ -53,8 +53,6 @@ typedef struct {
                 dynamicPower:1,
                 modelMatch:1,
                 txAntenna:2,    // FUTURE: Which TX antenna to use, 0=Auto
-                ptrStartChannel:4,
-                ptrEnableChannel:5,
                 linkMode:3;
 } model_config_t;
 
@@ -99,6 +97,10 @@ typedef struct {
                     backpackTlmMode:2;  // 0=Off, 1=Fwd tlm via espnow, 2=fwd tlm via wifi 3=(FUTURE) bluetooth
     uint8_t         dvrStartDelay:3,
                     dvrAux:5;
+    uint8_t         vtxChannelAux,
+                    vtxBandAux,
+                    vtxChannelReso,
+                    vtxBandReso;
     tx_button_color_t buttonColors[2];  // FUTURE: TX RGB color / mode (sets color of TX, can be a static color or standard)
                                         // FUTURE: Model RGB color / mode (sets LED color mode on the model, but can be second TX led color too)
                                         // FUTURE: Custom button actions
@@ -136,12 +138,10 @@ public:
     uint8_t  GetBackpackTlmMode() const { return m_config.backpackTlmMode; }
     tx_button_color_t const *GetButtonActions(uint8_t button) const { return &m_config.buttonColors[button]; }
     model_config_t const &GetModelConfig(uint8_t model) const { return m_config.model_config[model]; }
-    uint8_t GetPTRStartChannel() const { return m_model->ptrStartChannel; }
-    uint8_t GetPTREnableChannel() const { return m_model->ptrEnableChannel; }
-#ifdef MAFIA_FRQ
-    uint8_t  GetDomain() const { return m_config.Domain; }
-#endif
-
+    uint8_t GetVtxChannelAux() const {return m_config.vtxChannelAux;}
+    uint8_t GetVtxBandAux() const {return m_config.vtxBandAux;}
+    uint8_t GetVtxChannelReso() const {return m_config.vtxChannelReso;}
+    uint8_t GetVtxBandReso() const {return m_config.vtxBandReso;}
 
     // Setters
     void SetRate(uint8_t rate);
@@ -170,6 +170,10 @@ public:
     void SetBackpackTlmMode(uint8_t mode);
     void SetPTRStartChannel(uint8_t ptrStartChannel);
     void SetPTREnableChannel(uint8_t ptrEnableChannel);
+    void SetVtxBandAux(uint8_t vtxBandAux);
+    void SetVtxChannelAux(uint8_t vtxChannelAux);
+    void SetVtxBandReso(uint8_t vtxBandReso);
+    void SetVtxChannelReso(uint8_t vtxChannelReso);
 
     // State setters
     bool SetModelId(uint8_t modelId);
