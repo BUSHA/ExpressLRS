@@ -337,7 +337,7 @@ int getMappedResolution(u_int8_t input) {
 static void AuxStateToMSPOut()
 {
 #if defined(USE_TX_BACKPACK)
-    if (config.GetDvrAux() == 0)
+    if (config.GetDvrAux() != 0)
     {
         // DVR Recording
         const uint8_t auxNumber = (config.GetDvrAux() - 1) / 2 + 4;

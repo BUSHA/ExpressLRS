@@ -429,13 +429,13 @@ static void luadevUpdateBackpackOpts()
     LUA_FIELD_SHOW(luaBackpackVersion);
   }
   // VTx Band settings
-  if (config.GetVtxBandAux() == 0) {
+  if (config.GetVtxBandAux() == 0 || config.GetBackpackDisable()) {
     LUA_FIELD_HIDE(luaVtxBandReso);
   } else {
     LUA_FIELD_SHOW(luaVtxBandReso);
   }
   // VTx Channel settings
-  if (config.GetVtxChannelAux() == 0) {
+  if (config.GetVtxChannelAux() == 0 || config.GetBackpackDisable()) {
     LUA_FIELD_HIDE(luaVtxChannelReso);
   } else {
     LUA_FIELD_SHOW(luaVtxChannelReso);
