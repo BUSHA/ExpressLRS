@@ -1,4 +1,4 @@
-@@require(PLATFORM, VERSION, isTX, hasSubGHz, is8285)
+@@require(PLATFORM, VERSION, isTX, hasSubGHz, chip, is8285)
 <!DOCTYPE HTML>
 <html lang="en">
 
@@ -14,7 +14,7 @@
 		@@include("logo-template.svg")
 		<h2><b>MafiaLRS</b></h2>
 		<span id="product_name"></span><br/>
-		<b>Rev. </b>@@{VERSION} <span id="reg_domain"></span><br>
+		<b>Rev. </b>@@{VERSION} @@{chip} @ <span id="reg_domain"></span><br>
 		<b>Mafia: </b> 1.2
 	</header>
 	<br/>
@@ -96,6 +96,29 @@
 <!-- !!!! After any change, update domains in lib/LUA/rxtx_devLua.h !!!! -->
 
 							<label for="domain">Regulatory domain</label>
+						</div>
+@@else:
+						<div class="mui-select">
+							<select id='domain' name='domain'>
+								<optgroup label="Default frequencies">
+								<option value='0'>ISM2G4</option>
+								</optgroup>
+								<optgroup label="FPV Mafia frequencies">
+								<option value='1'>M-2.2</option>
+								<option value='2'>M-2.6</option>
+								</optgroup>
+							</select>
+							<label for="domain">Regulatory domain 2.4</label>
+						</div>
+@@end
+@@if chip=='LR1121':
+						<div class="mui-select">
+							<select id='domainXcross' name='domainXcross'>
+								<option value='0'>XISM-2.4</option>
+								<option value='1'>XISM-2.2</option>
+								<option value='2'>XISM-2.6</option>
+							</select>
+							<label for="domainXcross">Xrossband ISM2G4</label>
 						</div>
 @@end
 						<div class="mui-textfield">

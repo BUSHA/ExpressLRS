@@ -18,8 +18,8 @@ from external.wheezy.template.loader import FileLoader
 net_counter = 0
 isTX = False
 hasSubGHz = False
-is8285 = True
-chip = 'LR1121'
+is8285 = False
+chip = 'SX128X'
 
 config = {
         "options": {
@@ -33,7 +33,7 @@ config = {
             "rcvr-uart-baud": 400000,
             "rcvr-invert-tx": False,
             "lock-on-first-connection": True,
-            "domain": 1,
+            "domain": 0,
             # "wifi-on-interval": 60,
             "wifi-password": "w1f1-pAssw0rd",
             "wifi-ssid": "network-ssid"
