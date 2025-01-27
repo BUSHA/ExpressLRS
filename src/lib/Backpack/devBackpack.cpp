@@ -386,7 +386,7 @@ static void AuxStateToMSPOut()
         channelState = lastVtxChannelState;
     }
 
-if (config.GetBackpackProEnable() && (bandState != lastVtxBandState || channelState != lastVtxChannelState))
+if (!config.GetBackpackDisable() && config.GetBackpackProEnable() && (bandState != lastVtxBandState || channelState != lastVtxChannelState))
 
     // Packet sending logic...
     {

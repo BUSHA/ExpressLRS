@@ -426,6 +426,8 @@ static void luadevUpdateBackpackOpts()
     LUA_FIELD_HIDE(luaVtxChannelReso);
     LUA_FIELD_HIDE(luaBackpackTelemetry);
     LUA_FIELD_HIDE(luaBackpackVersion);
+    LUA_FIELD_HIDE(luaEnableBackpackPro);
+
   }
   else
   {
@@ -435,6 +437,8 @@ static void luadevUpdateBackpackOpts()
     LUA_FIELD_SHOW(luaDvrStopDelay);
     LUA_FIELD_SHOW(luaBackpackTelemetry);
     LUA_FIELD_SHOW(luaBackpackVersion);
+    LUA_FIELD_SHOW(luaEnableBackpackPro);
+
 
     // Handle visibility based on backpack pro enable status
     if (isBackpackProEnabled)
