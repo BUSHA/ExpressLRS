@@ -280,6 +280,13 @@ static struct luaItem_selection luaBackpackEnable = {
     STR_EMPTYSPACE};
 #endif
 
+static struct luaItem_selection luaEnableBackpackPro = {
+    {"Backpack Pro", CRSF_TEXT_SELECTION},
+    0, // default value, 0 for "Off" and 1 for "On"
+    luastrOffOn, // This should already be defined as "Off;On"
+    STR_EMPTYSPACE
+};
+
 static struct luaItem_selection luaDvrAux = {
     {"DVR Rec", CRSF_TEXT_SELECTION},
     0, // value
@@ -403,9 +410,13 @@ static void luadevUpdateTlmBandwidth()
 
 static void luadevUpdateBackpackOpts()
 {
-  if (config.GetBackpackDisable())
+  bool isBackpackDisabled = config.GetBackpackDisable();
+  bool isBackpackProEnabled = config.GetBackpackProEnable();
+
+  // Handle visibility based on backpack disable status
+  if (isBackpackDisabled)
   {
-    // If backpack is disabled, set all the Backpack select options to "Disabled"
+    // If the backpack is disabled, hide all related settings
     LUA_FIELD_HIDE(luaDvrAux);
     LUA_FIELD_HIDE(luaDvrStartDelay);
     LUA_FIELD_HIDE(luaDvrStopDelay);
@@ -418,29 +429,45 @@ static void luadevUpdateBackpackOpts()
   }
   else
   {
+    // Show all related settings when the backpack is enabled
     LUA_FIELD_SHOW(luaDvrAux);
     LUA_FIELD_SHOW(luaDvrStartDelay);
     LUA_FIELD_SHOW(luaDvrStopDelay);
-    LUA_FIELD_SHOW(luaVtxBandAux);
-    LUA_FIELD_SHOW(luaVtxBandReso);
-    LUA_FIELD_SHOW(luaVtxChannelAux);
-    LUA_FIELD_SHOW(luaVtxChannelReso);
     LUA_FIELD_SHOW(luaBackpackTelemetry);
     LUA_FIELD_SHOW(luaBackpackVersion);
+
+    // Handle visibility based on backpack pro enable status
+    if (isBackpackProEnabled)
+    {
+      LUA_FIELD_SHOW(luaVtxBandAux);
+      LUA_FIELD_SHOW(luaVtxBandReso);
+      LUA_FIELD_SHOW(luaVtxChannelAux);
+      LUA_FIELD_SHOW(luaVtxChannelReso);
+    }
+    else
+    {
+      LUA_FIELD_HIDE(luaVtxBandAux);
+      LUA_FIELD_HIDE(luaVtxBandReso);
+      LUA_FIELD_HIDE(luaVtxChannelAux);
+      LUA_FIELD_HIDE(luaVtxChannelReso);
+    }
   }
+
   // VTx Band settings
-  if (config.GetVtxBandAux() == 0 || config.GetBackpackDisable()) {
+  if (config.GetVtxBandAux() == 0 || isBackpackDisabled || !isBackpackProEnabled) {
     LUA_FIELD_HIDE(luaVtxBandReso);
   } else {
     LUA_FIELD_SHOW(luaVtxBandReso);
   }
+  
   // VTx Channel settings
-  if (config.GetVtxChannelAux() == 0 || config.GetBackpackDisable()) {
+  if (config.GetVtxChannelAux() == 0 || isBackpackDisabled || !isBackpackProEnabled) {
     LUA_FIELD_HIDE(luaVtxChannelReso);
   } else {
     LUA_FIELD_SHOW(luaVtxChannelReso);
   }
 }
+
 
 #if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
 static void setBleJoystickMode()
@@ -871,6 +898,11 @@ static void registerLuaParameters()
             }, luaBackpackFolder.common.id);
       }
       #endif
+
+    registerLUAParameter(&luaEnableBackpackPro, [](luaPropertiesCommon *item, uint8_t arg) {
+    config.SetBackpackProEnable(arg == 1);
+}, luaBackpackFolder.common.id);
+
       registerLUAParameter(
           &luaDvrAux, [](luaPropertiesCommon *item, uint8_t arg) {
               if (config.GetBackpackDisable() == false)
@@ -983,6 +1015,7 @@ static int event()
 #endif
 #endif
 
+  setLuaTextSelectionValue(&luaEnableBackpackPro, config.GetBackpackProEnable() ? 1 : 0);
 
   uint8_t dynamic = config.GetDynamicPower() ? config.GetBoostChannel() + 1 : 0;
   setLuaTextSelectionValue(&luaDynamicPower, dynamic);

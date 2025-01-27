@@ -364,11 +364,31 @@ static void AuxStateToMSPOut()
     }
 
     // VTX Band\Channel
-    const uint8_t vtxBandAux = (config.GetVtxBandAux() - 1) + 4;
-    const uint8_t vtxChannelAux = (config.GetVtxChannelAux() - 1) + 4;
-    const uint8_t bandState = getMappedBand(CRSF_to_N(ChannelData[vtxBandAux], getMappedResolution(config.GetVtxBandReso())), config.GetVtxBandReso());
-    const uint8_t channelState = getMappedChannel(CRSF_to_N(ChannelData[vtxChannelAux], getMappedResolution(config.GetVtxChannelReso())));
-    if (bandState != lastVtxBandState || channelState != lastVtxChannelState)
+    uint8_t vtxBandAux = (config.GetVtxBandAux() - 1) + 4;
+    uint8_t vtxChannelAux = (config.GetVtxChannelAux() - 1) + 4;
+
+    if (vtxBandAux <= 5) {
+        vtxBandAux = 100;
+    }
+
+    if (vtxChannelAux <= 5) {
+        vtxChannelAux = 100;
+    }
+    
+    uint8_t bandState = getMappedBand(CRSF_to_N(ChannelData[vtxBandAux], getMappedResolution(config.GetVtxBandReso())), config.GetVtxBandReso());
+    uint8_t channelState = getMappedChannel(CRSF_to_N(ChannelData[vtxChannelAux], getMappedResolution(config.GetVtxChannelReso())));
+    
+        if (vtxBandAux == 100) {
+        bandState = lastVtxBandState;
+    }
+
+        if (vtxChannelAux == 100) {
+        channelState = lastVtxChannelState;
+    }
+
+if (config.GetBackpackProEnable() && (bandState != lastVtxBandState || channelState != lastVtxChannelState))
+
+    // Packet sending logic...
     {
         lastVtxBandState = bandState;
         lastVtxChannelState = channelState;

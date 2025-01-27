@@ -135,6 +135,11 @@ public:
     uint8_t  GetDvrStartDelay() const { return m_config.dvrStartDelay; }
     uint8_t  GetDvrStopDelay() const { return m_config.dvrStopDelay; }
     bool     GetBackpackDisable() const { return m_config.backpackDisable; }
+
+    bool GetBackpackProEnable() const {
+        return backpackProEnable;
+    }
+
     uint8_t  GetBackpackTlmMode() const { return m_config.backpackTlmMode; }
     tx_button_color_t const *GetButtonActions(uint8_t button) const { return &m_config.buttonColors[button]; }
     model_config_t const &GetModelConfig(uint8_t model) const { return m_config.model_config[model]; }
@@ -167,6 +172,12 @@ public:
     void SetDvrStopDelay(uint8_t dvrStopDelay);
     void SetButtonActions(uint8_t button, tx_button_color_t actions[2]);
     void SetBackpackDisable(bool backpackDisable);
+
+    void SetBackpackProEnable(bool enable) {
+    backpackProEnable = enable;
+    m_modified = true; // Mark as modified if you need to track changes
+}
+
     void SetBackpackTlmMode(uint8_t mode);
     void SetPTRStartChannel(uint8_t ptrStartChannel);
     void SetPTREnableChannel(uint8_t ptrEnableChannel);
@@ -196,6 +207,7 @@ private:
 #if defined(PLATFORM_ESP32)
     nvs_handle  handle;
 #endif
+bool backpackProEnable = false;
 };
 
 extern TxConfig config;
