@@ -306,25 +306,25 @@ static struct luaItem_selection luaDvrStopDelay = {
     STR_EMPTYSPACE};
 
 static struct luaItem_selection luaVtxBandAux = {
-    {"VTx Band", CRSF_TEXT_SELECTION},
+    {"VTx band", CRSF_TEXT_SELECTION},
     config.GetVtxBandAux(), // value
     luastrVtxBand,
     STR_EMPTYSPACE};
 
 static struct luaItem_selection luaVtxBandReso = {
-    {"Band Reso", CRSF_TEXT_SELECTION},
+    {" band reso", CRSF_TEXT_SELECTION},
     config.GetVtxBandReso(), // value
     luastrVtxBandReso,
     STR_EMPTYSPACE};
 
 static struct luaItem_selection luaVtxChannelAux = {
-    {"VTx Channel", CRSF_TEXT_SELECTION},
+    {"VTx channel", CRSF_TEXT_SELECTION},
     config.GetVtxChannelAux(), // value
     luastrVtxChannel,
     STR_EMPTYSPACE};
 
   static struct luaItem_selection luaVtxChannelReso = {
-    {"Channel reso", CRSF_TEXT_SELECTION},
+    {" chan. reso", CRSF_TEXT_SELECTION},
     config.GetVtxChannelReso(), // value
     luastrVtxChannelReso,
     STR_EMPTYSPACE};
