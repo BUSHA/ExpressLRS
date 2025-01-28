@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
+set START_TIME=%TIME%
+
 :: Set path to PlatformIO executable
 set PIO_PATH=%USERPROFILE%\.platformio\penv\Scripts\platformio.exe
 
@@ -21,7 +23,7 @@ set ENVIRONMENTS=^
     Unified_ESP8285_2400_RX_via_UART^
     Unified_ESP32_LR1121_TX_via_UART^
     Unified_ESP32_900_TX_via_UART^
-    Unified_ESP32_2400_TX_via_UART^
+    Unified_ESP32_2400_TX_via_UART
 
 :: Path to release directory
 set RELEASE_DIR=C:\mafia_built
@@ -68,6 +70,24 @@ for %%e in (%ENVIRONMENTS%) do (
     timeout /t 2 /nobreak > nul
 )
 
+set END_TIME=%TIME%
+
+for /f "tokens=1-4 delims=:.," %%a in ("%START_TIME%") do (
+    set /a "start=(((%%a*60)+1%%b %% 100)*60+1%%c %% 100)*100+1%%d %% 100"
+)
+for /f "tokens=1-4 delims=:.," %%a in ("%END_TIME%") do (
+    set /a "end=(((%%a*60)+1%%b %% 100)*60+1%%c %% 100)*100+1%%d %% 100"
+)
+set /a elapsed=end-start
+
+set /a hh=elapsed/(60*60*100)
+set /a rest=elapsed%%(60*60*100)
+set /a mm=rest/(60*100)
+set /a rest%%=60*100
+set /a ss=rest/100
+set /a cc=rest%%100
+
 echo.
 echo All builds completed!
+echo Total time elapsed: %mm% minutes %ss% seconds
 pause
